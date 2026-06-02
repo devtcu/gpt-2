@@ -6,28 +6,30 @@ import inspect
 
 
 @dataclass
-class GPTConfig:
-    block_size: int = 1024
-    vocab_size: int = 50257
-    n_layer: int = 12
-    n_head: int = 12
-    n_embd: int = 768
+class GPTConfig: #these are just the hyperparameters
+    block_size: int = 1024 #context window (max sequence length)
+    vocab_size: int = 50257 #number of tokens
+    n_layer: int = 12 # number of transformer blocks
+    n_head: int = 12 #attentions heads per block
+    n_embd: int = 768 #size of the embedding vector for each token (dimension)
 
 
-class GPT(nn.Module):
+class GPT(nn.Module): #the actual GPT model
     def __init__(self, config):
         super().__init__()
         self.config = config
 
         self.transformer = nn.ModuleDict(
             dict(
-                wte=nn.Embedding(config.vocab_size, config.n_embd),
-                wpe=nn.Embedding(config.block_size, config.n_embd),
-                h=nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
-                ln_f=nn.LayerNorm(config.n_embd),
+                #wte is essentially a preloaded lookup table that maps each token to a 768-dim vector
+                #for example, token ID 42, just grab row 42 and that is our 768-dim vector
+                wte=nn.Embedding(config.vocab_size, config.n_embd), #50257 x 768, word token emeddings
+                wpe=nn.Embedding(config.block_size, config.n_embd), #word position encoding, same shape as wte 
+                h=nn.ModuleList([Block(config) for _ in range(config.n_layer)]), #transformer blocks
+                ln_f=nn.LayerNorm(config.n_embd), #this is the nomralization layer after going through the 12 blocks
             )
         )
-        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False) #this is the final layer that takes each 768-dim vector and projects it to 50257 scores
 
         # weight sharing scheme
         self.transformer.wte.weight = self.lm_head.weight
@@ -44,7 +46,7 @@ class GPT(nn.Module):
             torch.nn.init.normal_(module.weight, mean=0.0, std=std)
             if module.bias is not None:
                 torch.nn.init.zeros_(module.bias)
-        elif isinstance(module, nn.Embedding):
+        elif isinstance(module, nn.Embedding): #this is where wte is intialized with random numbers
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
     def configure_optimizers(self, weight_decay=0.1, learning_rate=3e-4, device="cpu"):
@@ -99,7 +101,7 @@ class GPT(nn.Module):
         logits = self.lm_head(x)  # (B, T, vocab_size)
         loss = None
         if targets is not None:
-            loss = F.cross_entropy(
+            loss = F.cross_entropy( #cross entropy has softmax built into it
                 logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1
             )
         return logits, loss
@@ -165,7 +167,9 @@ class GPT(nn.Module):
                     # only keep the last prediction
                     logits = logits[:, -1, :]
                     probs = F.softmax(logits, dim=-1)
-                    topk_probs, topk_indices = torch.topk(probs, top_priority, dim=-1)
+                    topk_probs, topk_indices = torch.topk(probs, top_priority, dim=-1) #top_priority is 50, so instead of always 
+                    #picking the highest probability token, it takes the 50 most likely and randomly samples from those 50 based on their probabilites
+                    #it does it below in multinomial. This way there is some deliberat randomnness!
                     ix = torch.multinomial(
                         topk_probs, num_samples=1, generator=sample_rng
                     )
@@ -232,7 +236,7 @@ class GPT(nn.Module):
         return model
 
 
-class CausalSelfAttention(nn.Module):
+class CausalSelfAttention(nn.Module): #this is where the attention mechancism happens
     def __init__(self, config):
         super().__init__()
         assert config.n_embd % config.n_head == 0
@@ -273,14 +277,16 @@ class CausalSelfAttention(nn.Module):
         # att = F.softmax(att, dim=-1)
         # y = att @ v  # (B, nh, T, hs)
         # this uses flash-attention: way faster (especially on GPU)
-        y = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+        y = F.scaled_dot_product_attention(q, k, v, is_causal=True) #is_casual is the masking of tokens and how 
+        #tokens can only attend to poisitions before it and not the future tokens (otherwise its
+        # like giving the answer away during the training process
 
         y = y.transpose(1, 2).contiguous().view(B, T, C)
         y = self.c_proj(y)
         return y
 
 
-class MLP(nn.Module):
+class MLP(nn.Module): #this is where the multi-layer perceptron happens (no communication between tokesn here, each token gets processed alone)
     def __init__(self, config):
         super().__init__()
         self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd)
@@ -294,7 +300,7 @@ class MLP(nn.Module):
         return x
 
 
-class Block(nn.Module):
+class Block(nn.Module): #and then we put the attnetion and MLP mechanisms together in the Block
     def __init__(self, config):
         super().__init__()
         self.ln_1 = nn.LayerNorm(config.n_embd)

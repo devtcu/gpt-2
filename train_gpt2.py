@@ -69,7 +69,8 @@ if __name__ == "__main__":
     # without having to load huge batches into memory
     config = Config(data_manager=dm)
 
-    enc = tiktoken.get_encoding("gpt2")
+    enc = tiktoken.get_encoding("gpt2") #this is the tokenizer. openai pre-made tiktoken so
+   # "hello" will always be fixed to 31373. in model.py, it only gets the token ID and predicts the next ID
     train_loader = DataLoaderLite(
         device_manager=dm,
         config=config,
@@ -125,7 +126,7 @@ if __name__ == "__main__":
             save_model(raw_model, lm)
 
         model.train()
-        optimizer.zero_grad()
+        optimizer.zero_grad() #clears old graidents from last step
         loss_accum = 0.0
         for micro_step in range(config.grad_accum_steps):
             x, y = train_loader.next_batch()
@@ -161,7 +162,7 @@ if __name__ == "__main__":
             param_group["lr"] = lr
 
         # optimizer step
-        optimizer.step()
+        optimizer.step() #this is the one that nudged every weight in direction of minimizing loss function
 
         # synchronize across GPUS
         if torch.cuda.is_available():

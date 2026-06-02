@@ -11,7 +11,7 @@ class Config:
         self.model_output_step = 250
         self.num_return_sequences_sample_training = 4
         self.max_length_sample_training = 32
-        self.dataset_name = "edu_fineweb10B"  # "edu_fineweb10B" or "tiny_shakespeare"
+        self.dataset_name = "tiny_shakespeare"  # "edu_fineweb10B" or "tiny_shakespeare"
         self.do_evaluate_benchmark = True
         self.data_manager = data_manager
 
