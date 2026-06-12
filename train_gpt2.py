@@ -30,7 +30,7 @@ def evaluate_validation(step, model, data_manager, log_manager):
     val_loader.reset()
     with torch.no_grad():
         val_loss_accum = 0.0
-        val_loss_steps = 20
+        val_loss_steps = 5
         for _ in range(val_loss_steps):
             x, y = val_loader.next_batch()
             x, y = x.to(dm.device), y.to(dm.device)
@@ -54,7 +54,9 @@ def save_model(raw_model, log_manager):
     }
     torch.save(checkpoint, checkpoint_path)
 
-
+#this below part is called Boilerplate Entry Point or The Main Guard
+#it makes sure that if I import train_gpt2.py to another file
+#it will make all the functions above available, but will not run them, preventing unwanted execution
 if __name__ == "__main__":
     # we set TF32
     torch.set_float32_matmul_precision("high")
@@ -73,7 +75,7 @@ if __name__ == "__main__":
    # "hello" will always be fixed to 31373. in model.py, it only gets the token ID and predicts the next ID
     train_loader = DataLoaderLite(
         device_manager=dm,
-        config=config,
+        config=config, # the whole Config objec is passed in 
         split="train",
         encoder=enc,
     )
@@ -86,7 +88,7 @@ if __name__ == "__main__":
 
     # we overwrite the vocab size (froom 50257 to 50304) to make the number "nice"
     # (it can be divided by many powers of 2)
-    model = GPT(GPTConfig(vocab_size=50304))
+    model = GPT(GPTConfig(vocab_size=50304)) #in model.py it is 20,257 tokens, here it is just rounded up to be a power of 2    
     model.to(dm.device)
     use_compile = False
     if torch.cuda.is_available() and use_compile:

@@ -1,3 +1,16 @@
+"""
+we are loading the pre-trained weights from hugging face into our model
+and when the user gives a prompt like "Once upon a time" it does a forward pass 
+through all 12 blocksand samples the next token to continue.
+
+Ther eis no training that happens here becasue the weights have been already been learned based on 40gb of text from the internet
+we are just using it ehre to predict text
+
+Alternatively, in config.py, we are actually training on the shakespeare dataset
+
+"""
+
+
 import torch
 import argparse
 import os
