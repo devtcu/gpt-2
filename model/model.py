@@ -8,9 +8,16 @@ import inspect
 @dataclass
 class GPTConfig: #these are just the hyperparameters
     block_size: int = 1024 #context window (max sequence length)
-    vocab_size: int = 50257 #number of tokens
+    vocab_size: int = 50257 #number of tokens (this is the Bytr Pair Ecnoding - we imported tiktoken in train_gpt2.py)
     n_layer: int = 12 # number of transformer blocks
     n_head: int = 12 #attentions heads per block
+    """
+    Instead of one attention over 768 dims, you split into 12 independent attentions over 64 dims each
+    768 dims / 12 heads = 64 dims per head
+    
+    Each head gets its own slice of the Q, K, V vectors and runs attention completely independently. Each one can specialize in a different relationship
+    pattern.
+    """
     n_embd: int = 768 #size of the embedding vector for each token (dimension)
 
 

@@ -1,3 +1,10 @@
+"""
+Here we choose a dataset to train on. 
+Then it goes to dataloader.py which reads tokens and serves batches during training
+then it does the training loop in train_gpt2.py
+    
+"""
+
 class Config:
     def __init__(self, data_manager):
         self.batch_size = 16
@@ -5,14 +12,14 @@ class Config:
         self.max_lr = 6e-4
         self.min_lr = self.max_lr * 0.1
         self.warmup_steps = 715
-        self.max_steps = 19073
-        self.block_size = 1024
-        self.log_step = 250
+        self.max_steps = 500
+        self.block_size = 512
+        self.log_step = 50
         self.model_output_step = 250
-        self.num_return_sequences_sample_training = 4
-        self.max_length_sample_training = 32
+        self.num_return_sequences_sample_training = 2
+        self.max_length_sample_training = 16
         self.dataset_name = "tiny_shakespeare"  # "edu_fineweb10B" or "tiny_shakespeare"
-        self.do_evaluate_benchmark = True
+        self.do_evaluate_benchmark = False
         self.data_manager = data_manager
 
         self.check_data_consistency()

@@ -1,3 +1,5 @@
+#Here we unpack what we need from config
+
 import os
 import numpy as np
 import torch
