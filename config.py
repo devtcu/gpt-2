@@ -13,7 +13,7 @@ class Config:
         self.min_lr = self.max_lr * 0.1
         self.warmup_steps = 715
         self.max_steps = 500
-        self.block_size = 512
+        self.block_size = 512 #context window
         self.log_step = 50
         self.model_output_step = 250
         self.num_return_sequences_sample_training = 2

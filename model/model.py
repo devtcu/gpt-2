@@ -1,3 +1,5 @@
+#main outline of architecture
+
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -8,7 +10,7 @@ import inspect
 @dataclass
 class GPTConfig: #these are just the hyperparameters
     block_size: int = 1024 #context window (max sequence length)
-    vocab_size: int = 50257 #number of tokens (this is the Bytr Pair Ecnoding - we imported tiktoken in train_gpt2.py)
+    vocab_size: int = 50257 #number of tokens (this is the Byte Pair Ecnoding - we imported tiktoken in train_gpt2.py)
     n_layer: int = 12 # number of transformer blocks
     n_head: int = 12 #attentions heads per block
     """
@@ -56,6 +58,12 @@ class GPT(nn.Module): #the actual GPT model
         elif isinstance(module, nn.Embedding): #this is where wte is intialized with random numbers
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
+    
+    def num_params(self):
+        n = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        print(f"GPT parameters: {n:,}")
+        return n
+    
     def configure_optimizers(self, weight_decay=0.1, learning_rate=3e-4, device="cpu"):
         # start with all the candidate parameters
         param_dict = {pn: p for pn, p in self.named_parameters()}
@@ -243,7 +251,7 @@ class GPT(nn.Module): #the actual GPT model
         return model
 
 
-class CausalSelfAttention(nn.Module): #this is where the attention mechancism happens
+class CausalSelfAttention(nn.Module): #this is where the attention mechansim happens
     def __init__(self, config):
         super().__init__()
         assert config.n_embd % config.n_head == 0
@@ -285,15 +293,17 @@ class CausalSelfAttention(nn.Module): #this is where the attention mechancism ha
         # y = att @ v  # (B, nh, T, hs)
         # this uses flash-attention: way faster (especially on GPU)
         y = F.scaled_dot_product_attention(q, k, v, is_causal=True) #is_casual is the masking of tokens and how 
-        #tokens can only attend to poisitions before it and not the future tokens (otherwise its
+        #tokens can only attend to positions before it and not the future tokens (otherwise its
         # like giving the answer away during the training process
 
         y = y.transpose(1, 2).contiguous().view(B, T, C)
         y = self.c_proj(y)
         return y
 
+        
 
-class MLP(nn.Module): #this is where the multi-layer perceptron happens (no communication between tokesn here, each token gets processed alone)
+
+class MLP(nn.Module): #this is where the multi-layer perceptron happens (no communication between tokens here, each token gets processed alone)
     def __init__(self, config):
         super().__init__()
         self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd)
